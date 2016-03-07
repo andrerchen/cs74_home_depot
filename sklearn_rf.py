@@ -22,6 +22,7 @@ from sklearn.metrics import mean_squared_error, make_scorer
 REBUILD = False
 GRID_SEARCH_RF = True
 BASIC_RF = False
+USE_SIMS = True
 
 # FUNCTIONS FOR RF WITH GRID SEARCH
 def fmean_squared_error(ground_truth, predictions):
@@ -49,21 +50,20 @@ class cust_txt_col(BaseEstimator, TransformerMixin):
 
 stemmer = SnowballStemmer('english')
 
-df_train = pd.read_csv('data/train.csv', encoding="ISO-8859-1")
-df_test = pd.read_csv('data/test.csv', encoding="ISO-8859-1")
+df_train = pd.read_csv('data/train.csv', encoding="ISO-8859-1") # UPDATE THIS
+df_test = pd.read_csv('data/test.csv', encoding="ISO-8859-1")   # UPDATE THIS
 # df_attr = pd.read_csv('../input/attributes.csv')
-df_pro_desc = pd.read_csv('data/product_descriptions.csv')
-df_sims_train = pd.read_csv('data/train_run_v1.csv')
-df_sims_test = pd.read_csv('data/test_run_v1.csv')
+df_pro_desc = pd.read_csv('data/product_descriptions.csv')      # UPDATE THIS 
 
-df_sims_train = df_sims_train.drop(['product_uid', 'relevance'], axis=1)
-df_sims_test = df_sims_test.drop('product_uid', axis=1)
-
-df_sims = pd.concat((df_sims_train, df_sims_test), axis=0, ignore_index=True)
+# USE OF COSINE SIMILARITIES (from gensim) IS OPTIONAL
+if USE_SIMS:
+    df_sims_train = pd.read_csv('data/train_run_v1.csv')            # UPDATE THIS
+    df_sims_test = pd.read_csv('data/test_run_v1.csv')              # UPDATE THIS
+    df_sims_train = df_sims_train.drop(['product_uid', 'relevance'], axis=1)
+    df_sims_test = df_sims_test.drop('product_uid', axis=1)
+    df_sims = pd.concat((df_sims_train, df_sims_test), axis=0, ignore_index=True)
 
 print("--- Files Loaded: %s minutes ---" % round(((time.time() - start_time)/60),2))
-
-#df_materials = pd.read_csv('data/materials-compiled.csv')[:5]
 
 num_train = df_train.shape[0]
 
@@ -76,17 +76,16 @@ def str_common_word(str1, str2):
 ########## COMPILE DF_ALL ##########
 if REBUILD: 
     df_all = pd.concat((df_train, df_test), axis=0, ignore_index=True)
-
     df_all = pd.merge(df_all, df_pro_desc, how='left', on='product_uid')
-
-    #df_all = pd.merge(df_all, df_materials, how='left', on='product_uid')
 
     df_all['search_term'] = df_all['search_term'].map(lambda x:str_stemmer(x))
     df_all['product_title'] = df_all['product_title'].map(lambda x:str_stemmer(x))
     df_all['product_description'] = df_all['product_description'].map(lambda x:str_stemmer(x))
     df_all['product_info'] = df_all['search_term']+"\t"+df_all['product_title']+"\t"+df_all['product_description']
 
-    df_all = pd.merge(df_all, df_sims, how='left', on='id')
+    # once again, optional
+    if USE_SIMS:
+        df_all = pd.merge(df_all, df_sims, how='left', on='id')
 
     df_all['len_of_query'] = df_all['search_term'].map(lambda x:len(x.split())).astype(np.int64)
 

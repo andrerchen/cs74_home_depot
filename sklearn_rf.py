@@ -115,18 +115,33 @@ if REBUILD:
 ########## RF WITH GRID SEARCH ##########
 if GRID_SEARCH_RF:
     df_all = pd.read_csv('df_all.csv', encoding="utf-8", index_col=0)
+
+    df_all = df_all.drop(['similarity_search_term_to_brand', 'similarity_search_term_to_materials'],axis=1)
+
     print("--- Files Loaded: %s minutes ---" % round(((time.time() - start_time)/60),2))
 
-    df_train = df_all.iloc[:num_train]
-    df_test = df_all.iloc[num_train:]
-    id_test = df_test['id']
+    # ACTUAL RUN
+    # df_train = df_all.iloc[:num_train]
+    # df_test = df_all.iloc[num_train:]
+    # id_test = df_test['id']
+    # y_train = df_train['relevance'].values
+    # X_train =df_train[:]
+    # X_test = df_test[:]
+
+    # TEST RUN
+    n_train = 50000
+
+    df_train = df_all.iloc[:n_train]
+    df_test = df_all.iloc[n_train:num_train]
     y_train = df_train['relevance'].values
-    X_train =df_train[:]
+    y_actual = df_test['relevance'].values
+    X_train = df_train[:]
     X_test = df_test[:]
 
-
+    # n_estimators = 500
     rfr = RandomForestRegressor(n_estimators = 500, n_jobs = 1, random_state = 2016, verbose = 1)
     tfidf = TfidfVectorizer(ngram_range=(1, 1), stop_words='english')
+    # n_components = 10
     tsvd = TruncatedSVD(n_components=10, random_state = 2016)
     clf = pipeline.Pipeline([
             ('union', FeatureUnion(
@@ -142,13 +157,13 @@ if GRID_SEARCH_RF:
                             'txt1': 0.5,
                             'txt2': 0.25,
                             'txt3': 0.0,
-                            'txt4': 0.5
+                            #'txt4': 0.5
                             },
                     n_jobs = 1
                     )), 
             ('rfr', rfr)])
     
-    param_grid = {'rfr__max_features': [10], 'rfr__max_depth': [20]}
+    param_grid = {'rfr__max_features': [10, 20, 30], 'rfr__max_depth': [10, 20, 30]}
     model = grid_search.GridSearchCV(estimator = clf, param_grid = param_grid, n_jobs = 1, cv = 2, verbose = 20, scoring=RMSE)
     model.fit(X_train, y_train)
 
@@ -156,10 +171,15 @@ if GRID_SEARCH_RF:
     print(model.best_params_)
     print("Best CV score:")
     print(model.best_score_)
-    print(model.best_score_ + 0.47003199274)
+    print(model.best_score_ + 0.47927)
 
     y_pred = model.predict(X_test)
-    pd.DataFrame({"id": id_test, "relevance": y_pred}).to_csv('submission.csv',index=False)
+    
+    mse = fmean_squared_error(y_actual, y_pred)
+
+    print(mse)
+
+    #pd.DataFrame({"id": id_test, "relevance": y_pred}).to_csv('submission.csv',index=False)
 
 
 ########## ORIGINAL CODE ##########

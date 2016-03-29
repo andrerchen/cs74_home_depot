@@ -24,6 +24,8 @@ GRID_SEARCH_RF = True
 BASIC_RF = False
 USE_SIMS = True
 
+DF_ALL = 'df_all.csv'
+
 # FUNCTIONS FOR RF WITH GRID SEARCH
 def fmean_squared_error(ground_truth, predictions):
     fmean_squared_error_ = mean_squared_error(ground_truth, predictions)**0.5
@@ -99,7 +101,7 @@ if REBUILD:
     df_all['query_last_word_in_description'] = df_all['product_info'].map(lambda x:str_common_word(x.split('\t')[0].split(" ")[-1],x.split('\t')[2]))
 
     # save the data frame
-    df_all.to_csv('df_all.csv', encoding="utf-8")
+    df_all.to_csv(DF_ALL, encoding="utf-8")
     print("--- Features Set: %s minutes ---" % round(((time.time() - start_time)/60),2))
 
     df_all = df_all.drop(['search_term','product_title','product_description','product_info'],axis=1)
@@ -114,7 +116,7 @@ if REBUILD:
 
 ########## RF WITH GRID SEARCH ##########
 if GRID_SEARCH_RF:
-    df_all = pd.read_csv('df_all.csv', encoding="utf-8", index_col=0)
+    df_all = pd.read_csv(DF_ALL, encoding="utf-8", index_col=0)
 
     df_all = df_all.drop(['similarity_search_term_to_brand', 'similarity_search_term_to_materials'],axis=1)
 
